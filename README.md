@@ -1,4 +1,4 @@
-# **imp** :smiling_imp: _image mosaicking in python_
+# **IMP** :smiling_imp: : _Image Mosaicking in Python_
 -----------------------
 
 
