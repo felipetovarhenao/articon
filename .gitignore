@@ -1,0 +1,5 @@
+**/__pycache__
+emoji-corpus
+**/*.png
+**/*.jpeg
+test.py
