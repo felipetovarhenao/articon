@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw
+from .image import Image, ImageDraw
 from gamut.data import KDTree
 from random import randint, choice, random
 from .config import RESAMPLING_METHOD
@@ -44,7 +44,7 @@ class PoissonDiskSampler:
         self.__populate()
 
     @staticmethod
-    def euclidean_distance(a, b) -> np.ndarray:
+    def euclidean_distance(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         """
         Static method to compute euclidean distance, as a default distance function
         """
@@ -107,7 +107,7 @@ class PoissonDiskSampler:
             if not found:
                 self.active.pop(pos_idx)
 
-    def show(self, point_size=1):
+    def show(self, point_size: int = 1) -> None:
         img = Image.new(mode='RGBA', size=(self.width, self.height), color=(0, 0, 0))
         draw = ImageDraw.Draw(img)
         for x, y in self.grid:
@@ -117,7 +117,7 @@ class PoissonDiskSampler:
         img.show()
 
 
-class ImageCorpus:
+class IconCorpus:
 
     def __init__(self,
                  images: Iterable | None = None,
@@ -132,7 +132,7 @@ class ImageCorpus:
         self.tree.build(data=[self.feature_extraction_func(img) for img in self.images], vector_path='features')
 
     @classmethod
-    def read(cls, folder_path, selection_filter: Callable | None = None, size: Iterable | None = None, *args, **kwargs) -> Self:
+    def read(cls, folder_path: str, selection_filter: Callable | None = None, size: Iterable | None = None, *args, **kwargs) -> Self:
         images = []
         for root, _, files in os.walk(folder_path):
             for file in files:
@@ -145,13 +145,16 @@ class ImageCorpus:
                     if size:
                         img = resize_img(img, size)
                     images.append(img)
+        if not images:
+            raise ValueError(
+                'No images to process. If using a selection filter function, make sure that at least one image passes the test')
         corpus = cls(images=images, *args, **kwargs)
         return corpus
 
-    def plot(self, error_tolerance: float = 0.3):
+    def show(self, error_tolerance: float = 0.25) -> None:
         count = len(self.images)
         cols = rows = int(count**0.5)
-        rows += 1
+        cols += 1
         cell_size = 30
         gap = cell_size // 2
         w, h = cols * 2 * (cell_size+gap), rows * (cell_size + gap)
@@ -168,24 +171,30 @@ class ImageCorpus:
                 cell = Image.new(mode='RGBA', size=size, color=(*color, 255))
                 canvas.paste(img, box=(left, top))
                 canvas.paste(cell, box=(left+cell_size, top))
-        canvas.show()
+        canvas.show(title='corpus')
 
-    def __get_feature_extraction_func(self, error_tolerance, alpha_treshold):
-        def feature_extraction_func(img):
+    def __get_feature_extraction_func(self, error_tolerance: float | int, alpha_treshold: int):
+        def feature_extraction_func(img: Image.Image) -> dict:
             return {
                 'image': img,
-                'features': get_dominant_color(img, error_tolerance, alpha_treshold)[:3]
+                'features': get_dominant_color(img, error_tolerance, alpha_treshold)
             }
         return feature_extraction_func
 
 
-class ImageMosaic:
+class IconMosaic:
     """
     An image mosaic represents a reconstruction of a target image using an image corpus.
     """
 
     def __init__(
-            self, target: str, corpus: ImageCorpus, radius: int = 10, k: int = 10, scale_target: float = 1.0, num_choices: int = 1,
+            self,
+            target: str,
+            corpus: IconCorpus,
+            radius: int = 10,
+            k: int = 10,
+            scale_target: float = 1.0,
+            num_choices: int = 1,
             target_mix: float = 0.0) -> None:
         self.target = Image.open(target).convert('RGBA')
         if scale_target != 1.0:
@@ -203,8 +212,8 @@ class ImageMosaic:
             self.target.paste(self.mosaic, mask=self.mosaic.convert('LA'))
             self.mosaic = self.target
 
-    def __get_feature_extraction_func(self, radius, num_choices, target_mix):
-        def sample_func(point) -> None:
+    def __get_feature_extraction_func(self, radius: float | int, num_choices: int, target_mix: float):
+        def sample_func(point: Iterable) -> None:
             x, y = point
             left, top, right, bottom = np.array([x-radius, y-radius, x+radius, y+radius]).astype('int64')
             segment = self.target.crop(box=((left, top, right, bottom)))
@@ -222,7 +231,7 @@ class ImageMosaic:
         self.mosaic.save(path, *args, **kwargs)
 
     def show(self) -> None:
-        self.mosaic.show()
+        self.mosaic.show(title='mosaic')
 
-    def resize(self, *args, **kwargs):
+    def resize(self, *args, **kwargs) -> None:
         self.mosaic.resize(*args, **kwargs)

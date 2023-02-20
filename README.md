@@ -1,11 +1,14 @@
-# :smiling_imp: **IMP**: _Image Mosaicking in Python_
+# :smiling_imp: **IMP**: _Icon Mosaicking in Python_
 -----------------------
 
 
 ## Description
-Python module for versatile image mosaicking. 
+Python module for flexible, corpus-based icon mosaicking. 
 
-This code is a Python porting and expansion of [emoji-mosaic](https://github.com/ericandrewlewis/emoji-mosaic) by [ericandrewlewis](https://github.com/ericandrewlewis/)
+This code is a Python porting and expansion of [emoji-mosaic](https://github.com/ericandrewlewis/emoji-mosaic) by [ericandrewlewis](https://github.com/ericandrewlewis/), and inspired by [Yung Jake](https://en.wikipedia.org/wiki/Yung_Jake)'s [emoji art](https://www.nytimes.com/2017/07/26/style/emoji-portraits-yung-jake.html).
+
+## Installation
+**IMP** is not yet available through ``pip``. In the meantime, you can clone this repo and run `pip install -r requirements.txt` to try it out.
 
 ## License
 ISC License

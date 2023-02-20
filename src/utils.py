@@ -1,14 +1,18 @@
-from PIL import Image, ImageStat, ImageChops, ImageOps, ImageDraw
+from .image import Image, ImageStat, ImageChops, ImageOps, ImageDraw
 import numpy as np
 from .config import RESAMPLING_METHOD
+from collections.abc import Iterable
 
 
-def get_dominant_color(img, error_tolerance: float = 0.25, alpha_threshold: int = 127, n_colors: int = 16):
+def get_dominant_color(img: Image.Image, error_tolerance: float = 0.25, alpha_threshold: int = 127, n_colors: int = 16) -> Iterable:
     """ Finds the most prevalent color in an image, """
 
     # quantize image into n_colors
     im = img.quantize(n_colors, method=Image.Quantize.FASTOCTREE)
-    mean = ImageStat.Stat(im.convert('RGB'), im.convert('PA')).mean
+    try:
+        mean = ImageStat.Stat(im.convert('RGB'), im.convert('L')).mean
+    except:
+        mean = (0, 0, 0)
     im = im.convert('PA')
 
     # sort colors based on pixel count
@@ -31,7 +35,7 @@ def get_dominant_color(img, error_tolerance: float = 0.25, alpha_threshold: int 
         if alpha < alpha_threshold:
             continue
         col = palette[pixel]
-        error = np.sum((col-mean)**2)**0.5
+        error = np.sum((col[:3]-mean[:3])**2)**0.5
         if error < min_error:
             best_candidate = col
             min_error = error
@@ -43,16 +47,18 @@ def get_dominant_color(img, error_tolerance: float = 0.25, alpha_threshold: int 
     return col if found else best_candidate
 
 
-def rgb2hex(r, g, b):
+def rgb2hex(r: int, g: int, b: int) -> str:
     """ RGB to HEX conversion """
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 
-def resize_img(img, size):
+def resize_img(img: Image.Image, size: Iterable) -> Image.Image:
     """ Resize image preserving aspect ratio """
     pad = False
     img_size = img.size
     x, y = img_size
+    if x == size[0] and y == size[1]:
+        return img
     if x < size[0] or y < size[1]:
         pad = True
     img.thumbnail(size, RESAMPLING_METHOD)
@@ -68,7 +74,7 @@ def resize_img(img, size):
         return ImageOps.fit(img, size, method=RESAMPLING_METHOD, centering=(0.5, 0.5))
 
 
-def pixelate_image(img, pixel_size, error_tolerance: float = 0.25, alpha_threshold: int = 127) -> None:
+def pixelate_image(img: Image.Image, pixel_size: int, error_tolerance: float = 0.25, alpha_threshold: int = 127) -> Image.Image:
     cols, rows = (np.array(img.size) // pixel_size).astype('int64')
     canvas = Image.new(mode='RGBA', size=img.size, color=(0, 0, 0, 0))
     for i in range(rows):
@@ -82,13 +88,13 @@ def pixelate_image(img, pixel_size, error_tolerance: float = 0.25, alpha_thresho
     return canvas
 
 
-def add_color_layer(im, rgb):
+def add_color_layer(im: Image.Image, rgb: Iterable) -> Image.Image:
     img = im.convert('LA').convert('RGBA')
     layer = Image.new('RGBA', im.size, tuple((*rgb, 255)))
     return ImageChops.overlay(img, layer)
 
 
-def create_image_palette(bits: int = 8, func: None = None):
+def create_image_palette(bits: int = 8, func: None = None) -> Image.Image:
     images = []
     chan = np.linspace(0, 255, bits).astype('int64')
     for r in chan:
