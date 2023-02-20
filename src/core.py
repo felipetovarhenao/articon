@@ -1,14 +1,15 @@
 from .image import Image, ImageDraw
-from gamut.data import KDTree
 from random import randint, choice, random
-from .config import RESAMPLING_METHOD
+from .config import RESAMPLING_METHOD, COUNTER, BAR
 from .utils import resize_img, get_dominant_color
 import numpy as np
 from typing import Callable
 from collections.abc import Iterable
 from typing_extensions import Self
 import os
-from gamut.config import CONSOLE
+from sklearn.neighbors import KDTree
+import cv2
+import subprocess
 
 
 class PoissonDiskSampler:
@@ -33,7 +34,7 @@ class PoissonDiskSampler:
         self.distance_func = distance_func or self.euclidean_distance
         self.sample_func = sample_func or (lambda _: None)
 
-        self.cell_size = self.radius**(0.5)
+        self.cell_size = self.radius / np.sqrt(2)
 
         self.cols = int(width // self.cell_size)
         self.rows = int(height // self.cell_size)
@@ -41,6 +42,7 @@ class PoissonDiskSampler:
         self.grid = np.empty(shape=(self.cols*self.rows, 2))
         self.grid.fill(-1)
         self.active = []
+        self.ordered = []
         self.__populate()
 
     @staticmethod
@@ -66,7 +68,9 @@ class PoissonDiskSampler:
     def __populate(self) -> None:
         # start with center coordinates and insert in self.grid and self.active
         self.__initialize()
-        CONSOLE.counter.reset('Matching target segments:')
+        if self.sample_func:
+            COUNTER.reset('Finding best matches:')
+
         # begin search
         while self.active:
             pos_idx = randint(0, len(self.active) - 1)
@@ -99,20 +103,20 @@ class PoissonDiskSampler:
                         found = True
                         self.grid[grid_index] = sample
                         self.active.append(sample)
+                        self.ordered.append(sample)
                         self.sample_func(sample)
-                        CONSOLE.counter.next()
+                        COUNTER.next()
                         break
 
             # remove point if useless
             if not found:
                 self.active.pop(pos_idx)
+    COUNTER.finish()
 
     def show(self, point_size: int = 1) -> None:
         img = Image.new(mode='RGBA', size=(self.width, self.height), color=(0, 0, 0))
         draw = ImageDraw.Draw(img)
-        for x, y in self.grid:
-            if -1 in (x, y):
-                continue
+        for x, y in self.ordered:
             draw.ellipse((x-point_size, y-point_size, x+point_size, y+point_size), fill=(255, 255, 255, 255))
         img.show()
 
@@ -120,16 +124,15 @@ class PoissonDiskSampler:
 class IconCorpus:
 
     def __init__(self,
-                 images: Iterable | None = None,
+                 images: Iterable,
                  leaf_size: int = 10,
                  feature_extraction_func: Callable | None = None,
                  error_tolerance: float = 0.25,
                  alpha_threshold: int = 127) -> None:
-        self.images = images or []
-        self.tree = KDTree(leaf_size=leaf_size)
+        self.images = images
         self.feature_extraction_func = feature_extraction_func or self.__get_feature_extraction_func(
             error_tolerance, alpha_threshold)
-        self.tree.build(data=[self.feature_extraction_func(img) for img in self.images], vector_path='features')
+        self.tree = KDTree([self.feature_extraction_func(img) for img in self.images], leaf_size=leaf_size)
 
     @classmethod
     def read(cls, folder_path: str, selection_filter: Callable | None = None, size: Iterable | None = None, *args, **kwargs) -> Self:
@@ -174,11 +177,8 @@ class IconCorpus:
         canvas.show(title='corpus')
 
     def __get_feature_extraction_func(self, error_tolerance: float | int, alpha_treshold: int):
-        def feature_extraction_func(img: Image.Image) -> dict:
-            return {
-                'image': img,
-                'features': get_dominant_color(img, error_tolerance, alpha_treshold)
-            }
+        def feature_extraction_func(img: Image.Image) -> Iterable:
+            return get_dominant_color(img, error_tolerance, alpha_treshold)
         return feature_extraction_func
 
 
@@ -203,14 +203,15 @@ class IconMosaic:
                       int(self.target.height * scale_target)),
                 resample=RESAMPLING_METHOD)
         self.corpus = corpus
-        self.mosaic = Image.new(mode='RGBA', size=(self.target.width, self.target.height), color=(0, 0, 0, 0))
-        self.radius = (np.cos(radius), np.sin(radius))
+        self.frames = []
+        self.mosaic = Image.new(mode='RGBA', size=self.target.size, color=(0, 0, 0, 0))
         self.sampler = PoissonDiskSampler(
             width=self.target.width, height=self.target.height, radius=radius, k=k,
             sample_func=self.__get_feature_extraction_func(radius, num_choices, target_mix))
         if target_mix > 0.0:
-            self.target.paste(self.mosaic, mask=self.mosaic.convert('LA'))
-            self.mosaic = self.target
+            tmp = self.target.copy()
+            tmp.paste(self.mosaic, mask=self.mosaic.convert('LA'))
+            self.mosaic = tmp
 
     def __get_feature_extraction_func(self, radius: float | int, num_choices: int, target_mix: float):
         def sample_func(point: Iterable) -> None:
@@ -220,12 +221,42 @@ class IconMosaic:
             if random() < target_mix:
                 return
             data = self.corpus.feature_extraction_func(segment)
-            matches = self.corpus.tree.knn(x=data['features'], vector_path='features', first_n=num_choices)
-            best_match = choice(matches)['value']['image']
+            indexes = self.corpus.tree.query([data], k=num_choices)[1][0]
+            matches = [self.corpus.images[i] for i in indexes]
+            best_match = choice(matches)
             best_match = best_match.rotate(randint(0, 360), resample=Image.Resampling.BICUBIC, expand=1)
             box = tuple((point - np.array(best_match.size) // 2).astype('int64'))
             self.mosaic.paste(best_match, box=box, mask=best_match)
+            self.frames.append(self.mosaic.copy())
         return sample_func
+
+    def save_as_video(self,
+                      path: str = 'mosaic.mp4',
+                      frame_rate: int = 60,
+                      background_image: Image.Image | None = None,
+                      open_file: bool = False) -> None:
+        def write_frame(video, frame):
+            video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
+        video = cv2.VideoWriter(path, fourcc, frame_rate, self.mosaic.size)
+        bg = resize_img(background_image, self.mosaic.size).convert('RGBA') if background_image else None
+
+        BAR.reset('Writing video frames', max=len(self.frames), item='frames')
+        if bg:
+            write_frame(video, bg)
+            BAR.next()
+        for frame in self.frames:
+            if bg:
+                im = bg.copy()
+                im.paste(frame, box=(0, 0), mask=frame)
+            else:
+                im = frame
+            write_frame(video, im)
+            BAR.next()
+        video.release()
+        if open_file:
+            subprocess.run(['open', path])
+        BAR.finish()
 
     def save(self, path: str = 'mosaic', *args, **kwargs) -> None:
         self.mosaic.save(path, *args, **kwargs)

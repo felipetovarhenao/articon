@@ -4,3 +4,4 @@ emoji-corpus
 **/*.jpeg
 test.py
 **/.DS_Store
+*.mp4
