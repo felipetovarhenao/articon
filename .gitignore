@@ -1,8 +1,21 @@
+# essentials
+.*
+**/.DS_Store
 **/__pycache__
-emoji-corpus
+
+# media
 **/*.png
 **/*.jpeg
-test*.py
-**/.DS_Store
-*.mp4
+**/*.mp4
+
+# specific
+emoji-corpus
 output
+test*.py
+*.egg-info
+
+# exceptions
+!.gitignore
+!**/tests/*.py
+!**/tests/data/sources/*.png
+!**/tests/data/targets/*.jpeg
