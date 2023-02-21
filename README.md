@@ -23,7 +23,14 @@ Python module for flexible, corpus-based icon mosaicking. Here are some emoji-ar
 This code is a Python porting and expansion of [emoji-mosaic](https://github.com/ericandrewlewis/emoji-mosaic) by [ericandrewlewis](https://github.com/ericandrewlewis/), and inspired by [Yung Jake](https://en.wikipedia.org/wiki/Yung_Jake)'s [emoji art](https://www.nytimes.com/2017/07/26/style/emoji-portraits-yung-jake.html).
 
 ## Installation
-**IMP** is not yet available through PyPI. In the meantime, however, you can clone this repo and run `pip install -r requirements.txt` to try it out.
+To install the latest version of **IMP** with pip, run:
+```shell
+pip install imp-kit
+```
+
+## Datasets
+A convenient corpus dataset that works well with **IMP** is [Kaggle](https://www.kaggle.com)'s *Full Emoji Image Dataset*, which you can download [here](https://www.kaggle.com/datasets/subinium/emojiimage-dataset?resource=download).
+
 
 ## License
 ISC License
