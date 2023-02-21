@@ -10,6 +10,7 @@ Python module for flexible, corpus-based icon mosaicking. Here are some emoji-ar
 	<img src="examples/starry-night-example.gif" alt="starry night" height="400px" width="auto" />
 	<img src="examples/bob-ross-example.gif" alt="Bob Ross" height="400px" width="auto" />
 	<img src="examples/trump-example.gif" alt="Trump" height="400px" width="auto" />
+	<img src="examples/mona-lisa-example.gif" alt="Mona Lisa" height="400px" width="auto" />
 </div>
 
 

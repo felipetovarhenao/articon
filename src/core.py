@@ -1,5 +1,5 @@
 from .image import Image, ImageDraw
-from random import randint, choice, random
+from random import randint, choice, random, Random
 from .config import RESAMPLING_METHOD, COUNTER, BAR
 from .utils import resize_img, get_dominant_color
 import numpy as np
@@ -150,6 +150,7 @@ class IconCorpus:
              error_tolerance: float = 0.25,
              alpha_threshold: int = 127,
              feature_extraction_func: Callable | None = None,
+             random_loading_seed: int | None = None,
              *args,
              **kwargs) -> Self:
         """ Builds a corpus from a folder of images, recursively loading any .jpeg, .jpg, or .png file within. """
@@ -158,6 +159,8 @@ class IconCorpus:
         feature_func = feature_extraction_func or IconCorpus.__get_feature_extraction_func(error_tolerance, alpha_threshold)
         COUNTER.reset('Building corpus from images:')
         for root, _, files in os.walk(source):
+            if isinstance(random_loading_seed, int):
+                Random(random_loading_seed).shuffle(files)
             for file in files:
                 ext = os.path.splitext(file)[1]
                 file_path = os.path.join(root, file)
