@@ -194,7 +194,7 @@ class IconCorpus:
                 if idx >= count:
                     break
                 img = self.images[idx].resize(size=(cell_size, cell_size))
-                color = tuple(get_dominant_color(img, error_tolerance))
+                color = tuple(get_dominant_color(img, error_tolerance))[0]
                 cell = Image.new(mode='RGBA', size=size, color=(*color, 255))
                 canvas.paste(img, box=(left, top))
                 canvas.paste(cell, box=(left+cell_size, top))
@@ -203,7 +203,8 @@ class IconCorpus:
     @classmethod
     def __get_feature_extraction_func(cls, error_tolerance: float | int, alpha_treshold: int) -> Callable:
         def feature_extraction_func(img: Image.Image) -> Iterable:
-            return get_dominant_color(img, error_tolerance, alpha_treshold)
+            color, density = get_dominant_color(img, error_tolerance, alpha_treshold)
+            return (*color, density)
         return feature_extraction_func
 
 
@@ -278,7 +279,7 @@ class IconMosaic:
                       path: str = 'mosaic.mp4',
                       frame_rate: int = 60,
                       background_image: Image.Image | None = None,
-                      max_duration: int = 15,
+                      max_duration: int = 5,
                       open_file: bool = False) -> None:
         if not self.frames:
             raise ValueError(

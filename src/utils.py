@@ -9,6 +9,11 @@ def get_dominant_color(img: Image.Image, error_tolerance: float = 0.25, alpha_th
 
     # quantize image into n_colors
     im = img.quantize(n_colors, method=Image.Quantize.FASTOCTREE)
+
+    # get num of active pixels
+    arr = np.array(img)[:, :, 3].reshape(img.size[0]*img.size[1])
+    num_pixels = np.where(arr > alpha_threshold, 1, 0).sum()
+
     try:
         mean = ImageStat.Stat(im.convert('RGB'), im.convert('L')).mean
     except:
@@ -28,10 +33,11 @@ def get_dominant_color(img: Image.Image, error_tolerance: float = 0.25, alpha_th
     min_error = 1000
     found = False
     col = None
+    density = 0
 
     # look for color that passes error and alpha thresholds
     for i in range(len(dominant_sorted)):
-        pixel, alpha = dominant_sorted[i][1]
+        pixel_count, (pixel, alpha) = dominant_sorted[i]
         if alpha < alpha_threshold:
             continue
         col = palette[pixel]
@@ -39,12 +45,13 @@ def get_dominant_color(img: Image.Image, error_tolerance: float = 0.25, alpha_th
         if error < min_error:
             best_candidate = col
             min_error = error
+            density = pixel_count/num_pixels
         if error > error_threshold:
             continue
         found = True
         break
 
-    return col if found else best_candidate
+    return col if found else best_candidate, density
 
 
 def rgb2hex(r: int, g: int, b: int) -> str:
@@ -82,7 +89,7 @@ def pixelate_image(img: Image.Image, pixel_size: int, error_tolerance: float = 0
             left, top = pixel_size*i, pixel_size*j
             box = (left, top, left + pixel_size, top + pixel_size)
             seg = img.crop(box)
-            rgba = get_dominant_color(seg, error_tolerance, alpha_threshold)
+            rgba = get_dominant_color(seg, error_tolerance, alpha_threshold)[0]
             col = Image.new(mode='RGBA', size=(pixel_size, pixel_size), color=tuple((*rgba, 255)))
             canvas.paste(col, box=(left, top))
     return canvas
