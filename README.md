@@ -5,8 +5,11 @@
 ## Description
 Python module for flexible, corpus-based icon mosaicking. Here are some emoji-art examples made with **IMP**.
 
-<img src="examples/starry-night-example.gif" alt="starry night" height="300px" />
-<img src="examples/bob-ross-example.gif" alt="Bob Ross" height="300px" />
+
+<div style="display: flex; flex-flow: row; flex-wrap: wrap; justify-content: center;">
+	<img style="display: flex;" src="examples/starry-night-example.gif" alt="starry night" height="320px" />
+	<img style="display: flex;" src="examples/bob-ross-example.gif" alt="Bob Ross" height="320px" />
+</div>
 
 ## Acknowledgements
 This code is a Python porting and expansion of [emoji-mosaic](https://github.com/ericandrewlewis/emoji-mosaic) by [ericandrewlewis](https://github.com/ericandrewlewis/), and inspired by [Yung Jake](https://en.wikipedia.org/wiki/Yung_Jake)'s [emoji art](https://www.nytimes.com/2017/07/26/style/emoji-portraits-yung-jake.html).
