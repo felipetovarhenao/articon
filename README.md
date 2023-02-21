@@ -3,9 +3,11 @@
 
 
 ## Description
-Python module for flexible, corpus-based icon mosaicking. 
+Python module for flexible, corpus-based icon mosaicking. Here are some emoji-art examples made with **IMP**.
 
 ![Starry night mosaic](examples/starry-night-example.gif)
+
+![Bob Ross mosaic](examples/bob-ross-example.gif)
 
 ## Acknowledgements
 This code is a Python porting and expansion of [emoji-mosaic](https://github.com/ericandrewlewis/emoji-mosaic) by [ericandrewlewis](https://github.com/ericandrewlewis/), and inspired by [Yung Jake](https://en.wikipedia.org/wiki/Yung_Jake)'s [emoji art](https://www.nytimes.com/2017/07/26/style/emoji-portraits-yung-jake.html).
