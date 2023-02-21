@@ -59,7 +59,7 @@ class IconCorpus:
                 if ext.lower() not in ['.jpeg', '.jpg', '.png']:
                     continue
                 img = Image.open(file_path)
-                if not selection_filter or (selection_filter and selection_filter(img)):
+                if not selection_filter or (selection_filter and selection_filter(img, file)):
                     if size:
                         img = resize_img(img, size)
                     im = img.convert("RGBA")

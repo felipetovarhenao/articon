@@ -1,7 +1,7 @@
 import unittest
-from imp.utils import create_image_palette
-from imp.features import IconCorpus, IconMosaic
-from imp.image import Image, ImageDraw, ImageStat
+from articon.utils import create_image_palette
+from articon.features import IconCorpus, IconMosaic
+from articon.image import Image, ImageDraw, ImageStat
 from collections.abc import Iterable
 import os
 

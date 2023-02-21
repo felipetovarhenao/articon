@@ -3,9 +3,9 @@ from pathlib import Path
 
 long_description = (Path(__file__).parent / "README.md").read_text()
 
-MODULE = 'imp-kit'
+MODULE = 'articon'
 VERSION = '0.0.0-dev'
-DESCRIPTION = 'Corpus-based, icon mosaicking in Python'
+DESCRIPTION = 'Corpus-based, icon mosaicking art in Python'
 
 setup(
     name=MODULE,
@@ -13,7 +13,7 @@ setup(
     author='Felipe Tovar-Henao',
     author_email='<felipe.tovar.henao@gmail.com>',
     description=DESCRIPTION,
-    url='https://github.com/felipetovarhenao/imp',
+    url='https://github.com/felipetovarhenao/articon',
     packages=find_packages(exclude=("tests",)),
     license='OSI Approved :: ISC License (ISCL)',
     install_requires=[

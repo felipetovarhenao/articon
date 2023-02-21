@@ -1,2 +1,2 @@
-pip3 uninstall imp-kit
+pip3 uninstall articon
 python3 setup.py install --record files.txt
