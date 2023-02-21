@@ -167,8 +167,9 @@ class IconCorpus:
                 if not selection_filter or (selection_filter and selection_filter(img)):
                     if size:
                         img = resize_img(img, size)
-                    images.append(img)
-                    features.append(feature_func(img))
+                    im = img.convert("RGBA")
+                    images.append(im)
+                    features.append(feature_func(im))
                     COUNTER.next()
         COUNTER.finish()
         if not images:

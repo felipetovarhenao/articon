@@ -2,6 +2,7 @@
 emoji-corpus
 **/*.png
 **/*.jpeg
-test.py
+test*.py
 **/.DS_Store
 *.mp4
+output
