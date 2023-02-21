@@ -3,7 +3,7 @@ from pathlib import Path
 
 long_description = (Path(__file__).parent / "README.md").read_text()
 
-MODULE = 'imp'
+MODULE = 'imp-kit'
 VERSION = '0.0.0-dev'
 DESCRIPTION = 'Corpus-based, icon mosaicking in Python'
 
@@ -14,11 +14,8 @@ setup(
     author_email='<felipe.tovar.henao@gmail.com>',
     description=DESCRIPTION,
     url='https://github.com/felipetovarhenao/imp',
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests",)),
     license='OSI Approved :: ISC License (ISCL)',
-    entry_points={
-        'console_scripts': ['gamut=gamut:cli']
-    },
     install_requires=[
         'numpy',
         'typing_extensions',

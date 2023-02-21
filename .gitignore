@@ -13,6 +13,9 @@ emoji-corpus
 output
 test*.py
 *.egg-info
+files.txt
+build
+dist
 
 # exceptions
 !.gitignore
