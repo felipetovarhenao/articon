@@ -215,7 +215,7 @@ class IconMosaic:
 
     def __init__(
             self,
-            target: str,
+            target: str | Image.Image,
             corpus: IconCorpus,
             radius: int = 10,
             k: int = 10,
@@ -225,7 +225,7 @@ class IconMosaic:
             keep_frames: bool = False,
             frame_hop_size: int | None = None) -> None:
 
-        self.target = Image.open(target).convert('RGBA')
+        self.target = Image.open(target).convert('RGBA') if isinstance(target, str) else target
 
         # resize target if needed
         if scale_target != 1.0:
