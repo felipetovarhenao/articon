@@ -19,6 +19,7 @@ dist
 
 # exceptions
 !.gitignore
+!.github
 !**/tests/*.py
 !**/tests/data/sources/*.png
 !**/tests/data/targets/*.jpeg
