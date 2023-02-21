@@ -1,9 +1,11 @@
 # :smiling_imp: **IMP**: _Icon Mosaicking in Python_
 -----------------------
 
+![version](https://img.shields.io/pypi/v/imp-kit)
+![downloads](https://img.shields.io/pypi/dm/imp-kit)
 ![build](https://img.shields.io/github/actions/workflow/status/felipetovarhenao/imp/test.yaml?label=test)
 ![last_commit](https://img.shields.io/github/last-commit/felipetovarhenao/imp)
-
+![license](https://img.shields.io/pypi/l/imp-kit)
 
 ## Description
 Python module for flexible, corpus-based icon mosaicking. Here are some emoji-art examples made with **IMP**.
