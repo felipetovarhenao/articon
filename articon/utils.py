@@ -61,26 +61,56 @@ def rgb2hex(r: int, g: int, b: int) -> str:
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 
-def resize_img(img: Image.Image, size: Iterable) -> Image.Image:
-    """ Resize image preserving aspect ratio """
-    pad = False
-    img_size = img.size
-    x, y = img_size
-    if x == size[0] and y == size[1]:
-        return img
-    if x < size[0] or y < size[1]:
-        pad = True
-    img.thumbnail(size, RESAMPLING_METHOD)
+def resize_img(img: Image.Image, size: Iterable | float | int) -> Image.Image:
+    """
+    Resizes image while preserving aspect ratio.
+    If size is an iterable, it fits centered image within specified size, down- or up-sizing if needed, and pads as necessary.
+    If size is a float/int < 10, the value is interpreted as a rescaling factor
+    If size is a float/int >= 10, the value is interpreted as the length of the longest edge.
+    """
 
-    if pad:
-        thumb = img.crop((0, 0, size[0], size[1]))
+    in_size = img.size
 
-        offset_x = max((size[0] - img_size[0]), 0)
-        offset_y = max((size[1] - img_size[1]), 0)
-        return ImageChops.offset(thumb, xoffset=offset_x, yoffset=offset_y)
+    # resolve intended resizing
+    if isinstance(size, Iterable):
+        # 1) explicit
+        out_size = size
+    elif isinstance(size, float | int):
+        if size < 10:
+            # 2) scaling factor
+            factor = size
+        else:
+            # 3) max side length
+            factor = size/max(*in_size)
+        out_size = tuple(int(x*factor) for x in in_size)
 
+        # normal resizing method
+        return img.resize(out_size, RESAMPLING_METHOD)
     else:
-        return ImageOps.fit(img, size, method=RESAMPLING_METHOD, centering=(0.5, 0.5))
+        raise TypeError(f'{size} must be either an int, float, or iterable.')
+
+    # do nothing if size is the same
+    if in_size[0] == out_size[0] and in_size[1] == out_size[1]:
+        return img
+
+    img_copy = img.copy()
+
+    if in_size[0] > out_size[0] or in_size[1] > out_size[1]:
+        # downscaling
+        img_copy.thumbnail(out_size, RESAMPLING_METHOD)
+    else:
+        # upscaling
+        img_copy = resize_img(img_copy, max(*out_size))
+
+    # update image size
+    in_size = img_copy.size
+
+    # apply padding and center
+    thumb = img_copy.crop((0, 0, out_size[0], out_size[1]))
+
+    offset_x = max((out_size[0] - in_size[0]), 0) // 2
+    offset_y = max((out_size[1] - in_size[1]), 0) // 2
+    return ImageChops.offset(thumb, xoffset=offset_x, yoffset=offset_y)
 
 
 def pixelate_image(img: Image.Image, pixel_size: int, error_tolerance: float = 0.25, alpha_threshold: int = 127) -> Image.Image:

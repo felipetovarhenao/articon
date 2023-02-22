@@ -39,7 +39,7 @@ class IconCorpus:
     def read(cls,
              source: str,
              selection_filter: Callable | None = None,
-             size: Iterable | None = None,
+             size: Iterable | None = 60,
              error_tolerance: float = 0.25,
              alpha_threshold: int = 127,
              feature_extraction_func: Callable | None = None,
@@ -123,20 +123,15 @@ class IconMosaic:
             corpus: IconCorpus,
             radius: int = 10,
             k: int = 10,
-            scale_target: float = 1.0,
+            size: float | int | None = None,
             num_choices: int = 1,
             target_mix: float = 0.0,
             keep_frames: bool = False,
             frame_hop_size: int | None = None) -> None:
 
         self.target = Image.open(target).convert('RGBA') if isinstance(target, str) else target
-
-        # resize target if needed
-        if scale_target != 1.0:
-            self.target = self.target.resize(
-                size=(int(self.target.width * scale_target),
-                      int(self.target.height * scale_target)),
-                resample=RESAMPLING_METHOD)
+        if size:
+            self.target = resize_img(self.target, size=size)
 
         self.corpus = corpus
         self.frames = []
@@ -246,8 +241,7 @@ class AnimatedIconMosaic:
                max_duration: float | int = None,
                size: Iterable = (120, 120),
                frame_rate: int = 24,
-               radius: int = 10,
-               **kwargs) -> None:
+               radius: int = 10) -> None:
         """ Writes a video mosaic animation to disk """
         # define frame params
         reader_frame_rate = self.reader.get(cv2.CAP_PROP_FPS)
