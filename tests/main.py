@@ -1,6 +1,6 @@
 import unittest
 from articon.utils import create_image_palette
-from articon.features import IconCorpus, IconMosaic
+from articon.models import IconCorpus, IconMosaic
 from articon.image import Image, ImageDraw, ImageStat
 from collections.abc import Iterable
 import os

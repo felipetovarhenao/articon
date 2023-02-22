@@ -130,6 +130,7 @@ class IconMosaic:
             frame_hop_size: int | None = None) -> None:
 
         self.target = Image.open(target).convert('RGBA') if isinstance(target, str) else target
+        self.cache = {}
 
         # resize target if needed
         if scale_target != 1.0:
