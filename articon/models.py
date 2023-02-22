@@ -2,7 +2,7 @@ from __future__ import annotations
 from .image import Image
 from random import randint, choice, random, Random
 from .config import RESAMPLING_METHOD, COUNTER, BAR
-from .utils import resize_img, get_dominant_color
+from .utils import resize_img, get_dominant_color, xy_random, bgr2rgb, write_frame
 import numpy as np
 from typing import Callable
 from collections.abc import Iterable
@@ -130,7 +130,6 @@ class IconMosaic:
             frame_hop_size: int | None = None) -> None:
 
         self.target = Image.open(target).convert('RGBA') if isinstance(target, str) else target
-        self.cache = {}
 
         # resize target if needed
         if scale_target != 1.0:
@@ -190,15 +189,15 @@ class IconMosaic:
             raise ValueError(
                 f"To use the save_as_video method you must set the keep_frames argument to True when creating an instance of the {self.__class__.__name__} class")
 
+        def write_frame(video, frame):
+            video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
+
         full_duration = len(self.frames) / frame_rate
         hop_size = int(max(1, round(full_duration / max_duration)))
         final_duration = full_duration / hop_size
         final_frame_count = final_duration * frame_rate
 
-        def write_frame(video, frame):
-            video.write(cv2.cvtColor(np.array(frame), cv2.COLOR_RGB2BGR))
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')
-        video = cv2.VideoWriter(path, fourcc, frame_rate, self.mosaic.size)
+        video = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'avc1'), frame_rate, self.mosaic.size)
         bg = resize_img(background_image, self.mosaic.size).convert('RGBA') if background_image else None
 
         BAR.reset('Writing video frames', max=final_frame_count+1, item='frames')
@@ -218,6 +217,12 @@ class IconMosaic:
             subprocess.run(['open', path])
         BAR.finish()
 
+    def get_image(self):
+        return self.mosaic
+
+    def get_sampler(self):
+        return self.sampler
+
     def save(self, path: str = 'mosaic', *args, **kwargs) -> None:
         self.mosaic.save(path, *args, **kwargs)
 
@@ -226,3 +231,109 @@ class IconMosaic:
 
     def resize(self, *args, **kwargs) -> None:
         self.mosaic.resize(*args, **kwargs)
+
+
+class AnimatedIconMosaic:
+    """ This class create an animated mosaic based on a target video. """
+
+    def __init__(self, target: str, corpus: IconCorpus) -> None:
+        self.reader = cv2.VideoCapture(target)
+        self.corpus = corpus
+        self.theta = 0
+
+    def render(self,
+               output: str,
+               max_duration: float | int = None,
+               size: Iterable = (120, 120),
+               frame_rate: int = 24,
+               radius: int = 10,
+               **kwargs) -> None:
+        """ Writes a video mosaic animation to disk """
+        # define frame params
+        reader_frame_rate = self.reader.get(cv2.CAP_PROP_FPS)
+        max_dur = max_duration or self.reader.get(cv2.CAP_PROP_FRAME_COUNT) * reader_frame_rate
+        max_read_frames = int(max_dur * reader_frame_rate)
+        max_write_frames = min(int(max_dur * frame_rate), max_read_frames)
+        hop_size = int(max_read_frames//max_write_frames)
+
+        # warn if target frame rate is lower than desired
+        if frame_rate > reader_frame_rate:
+            print(
+                f'Warning: The target\'s frame rate ({frame_rate} fps) is lower that desired frame rate ({reader_frame_rate} fps), and will therefore be ignored. Rendering at {reader_frame_rate} fps...')
+
+        # get first frame
+        image = self.reader.read()[1]
+
+        # load first frame
+        im = Image.fromarray(bgr2rgb(image)).convert('RGBA')
+        im = resize_img(im, size=size)
+
+        # create writer
+        writer = cv2.VideoWriter(output, cv2.VideoWriter_fourcc(*'avc1'), frame_rate, im.size)
+
+        # create fixed poisson disk sampler as pixel grid
+        COUNTER.set_verbose(False)
+        w, h = im.size
+        sampler = PoissonDiskSampler(width=w, height=h, radius=radius)
+        BAR.set_verbose(True)
+        BAR.reset('Rendering frames:', max=max_write_frames, item='frames')
+
+        xy_offset = int((sampler.radius / np.sqrt(2)))
+        sample_func = self.__get_sample_func(xy_offset=xy_offset)
+        points = np.array(sampler.get_points()).astype('int64')
+
+        read_count = 0
+        success = True
+        try:
+            while success and read_count < max_read_frames:
+                success, frame = self.reader.read()
+                if read_count % hop_size == 0:
+                    self.__write_frame(writer=writer,
+                                       reader_frame=frame,
+                                       points=points,
+                                       size=size,
+                                       sample_func=sample_func)
+                    BAR.next()
+                read_count += 1
+        except KeyboardInterrupt:
+            pass
+        BAR.finish()
+        writer.release()
+
+    def __get_sample_func(self, xy_offset: int) -> Callable:
+        """ Creates function to run for every point in the Poisson sampler """
+
+        def sample_func(input_frame: Image.Image, output_frame: Image.Image, point: Iterable) -> None:
+            x, y = point
+            left, top, right, bottom = np.array([x-xy_offset, y-xy_offset, x+xy_offset, y+xy_offset]).astype('int64')
+            theta = int(xy_random(x, y) * 360)
+            segment = input_frame.crop(box=((left, top, right, bottom)))
+            feature = self.corpus.feature_extraction_func(segment)
+            image_index = self.corpus.tree.query([feature], k=1)[1][0][0]
+            best_match = self.corpus.images[image_index]
+            direction = [-1, 1][int(theta) % 2 == 0]
+            best_match = best_match.rotate(theta + (self.theta*direction), resample=Image.Resampling.BICUBIC, expand=1)
+            box = tuple((point - np.array(best_match.size) // 2).astype('int64'))
+            output_frame.paste(best_match, box=box, mask=best_match)
+
+        return sample_func
+
+    def __write_frame(self,
+                      writer: cv2.VideoWriter,
+                      reader_frame: np.ndarray,
+                      points: Iterable,
+                      size: Iterable,
+                      sample_func: Callable) -> None:
+        """ Creates mosaic for input frame """
+
+        # prepare input and output
+        input_frame = resize_img(Image.fromarray(bgr2rgb(reader_frame)).convert("RGBA"), size=size)
+        output_frame = Image.new(mode='RGBA', size=input_frame.size, color=(0, 0, 0, 0))
+
+        # create mosaic for current frame
+        list(map(lambda sample: sample_func(input_frame, output_frame, sample), points))
+
+        # write it into video
+        write_frame(writer, output_frame)
+
+        self.theta += 1

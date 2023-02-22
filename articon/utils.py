@@ -3,6 +3,7 @@ from .image import Image, ImageStat, ImageChops, ImageOps, ImageDraw
 import numpy as np
 from .config import RESAMPLING_METHOD
 from collections.abc import Iterable
+import cv2
 
 
 def get_dominant_color(img: Image.Image, error_tolerance: float = 0.25, alpha_threshold: int = 127, n_colors: int = 16) -> Iterable:
@@ -96,6 +97,11 @@ def pixelate_image(img: Image.Image, pixel_size: int, error_tolerance: float = 0
     return canvas
 
 
+def xy_random(x: float | int, y: float | int) -> float:
+    """ Deterministically generates random value in the range of [0, 1) from two values"""
+    return np.sin(np.dot([x, y], [12.98931, 78.2357]))*43758.5453123 % 1.0
+
+
 def add_color_layer(im: Image.Image, rgb: Iterable) -> Image.Image:
     img = im.convert('LA').convert('RGBA')
     layer = Image.new('RGBA', im.size, tuple((*rgb, 255)))
@@ -117,3 +123,17 @@ def create_image_palette(bits: int = 8, func: None = None) -> Image.Image:
                     draw.ellipse(xy=(0, 0, size, size), fill=(0, 0, 0, 0), outline=(r, g, b, 255), width=12)
                 images.append(im)
     return images
+
+
+def bgr2rgb(arr: np.ndarray) -> np.ndarray:
+    """ Converts a BGR formatted numpy array into RGB """
+    return cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+
+
+def rgb2bgr(arr: np.ndarray) -> np.ndarray:
+    """ Converts an RGB formatted numpy array into BGR """
+    return cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+
+
+def write_frame(writer: cv2.VideoWriter, frame: Image.Image) -> None:
+    writer.write(rgb2bgr(np.array(frame)))

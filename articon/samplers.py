@@ -106,7 +106,12 @@ class PoissonDiskSampler:
                 self.active.pop(pos_idx)
         COUNTER.finish()
 
+    def get_points(self):
+        """ Returns points """
+        return self.ordered
+
     def show(self, point_size: int = 1) -> None:
+        """ Displays sampled points """
         img = Image.new(mode='RGBA', size=(self.width, self.height), color=(0, 0, 0))
         draw = ImageDraw.Draw(img)
         for x, y in self.ordered:
