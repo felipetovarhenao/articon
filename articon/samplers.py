@@ -1,5 +1,6 @@
 from __future__ import annotations
 from .image import Image, ImageDraw
+from .utils import euclidean_distance
 from random import randint
 from .config import COUNTER
 import numpy as np
@@ -24,7 +25,7 @@ class PoissonDiskSampler:
         self.k = k
         self.width = width
         self.height = height
-        self.distance_func = distance_func or self.euclidean_distance
+        self.distance_func = distance_func or euclidean_distance
         self.sample_func = sample_func or (lambda _: None)
 
         self.cell_size = self.radius / np.sqrt(2)
@@ -37,13 +38,6 @@ class PoissonDiskSampler:
         self.active = []
         self.ordered = []
         self.__populate()
-
-    @staticmethod
-    def euclidean_distance(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-        """
-        Static method to compute euclidean distance, as a default distance function
-        """
-        return ((a - b) ** 2).sum() ** 0.5
 
     def __initialize(self) -> None:
         """ Inserts the center coordinates of the 2D space in the ``grid`` and ``active`` arrays """
@@ -81,6 +75,8 @@ class PoissonDiskSampler:
                         if not far_enough:
                             break
                         for j in range(-1, 2):
+                            if not far_enough:
+                                break
                             idx = col + i + (row + j) * self.cols
                             if not 0 <= idx < len(self.grid):
                                 continue

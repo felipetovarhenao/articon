@@ -59,7 +59,7 @@ class IconCorpus:
                 if ext.lower() not in ['.jpeg', '.jpg', '.png']:
                     continue
                 img = Image.open(file_path)
-                if not selection_filter or (selection_filter and selection_filter(img, file)):
+                if not selection_filter or (selection_filter and selection_filter(img)):
                     if size:
                         img = resize_img(img, size)
                     im = img.convert("RGBA")
@@ -81,11 +81,10 @@ class IconCorpus:
         elif seed is not None:
             Random(seed).shuffle(files)
 
-    def show(self, error_tolerance: float = 0.25) -> None:
+    def show(self) -> None:
         """ Display every image in corpus along with its associated dominant color """
         count = len(self.images)
-        cols = rows = int(count**0.5)
-        cols += 1
+        cols = rows = int(count**0.5) + 1
         cell_size = 30
         gap = cell_size // 2
         w, h = cols * 2 * (cell_size+gap), rows * (cell_size + gap)
@@ -97,10 +96,12 @@ class IconCorpus:
                 left, top = (i * cell_size * 2) + (gap * i * 2), j * cell_size + (gap * j)
                 if idx >= count:
                     break
-                img = self.images[idx].resize(size=(cell_size, cell_size))
-                color = tuple(get_dominant_color(img, error_tolerance))[0]
+                img = self.images[idx]
+                color = self.feature_extraction_func(img)[:3]
                 cell = Image.new(mode='RGBA', size=size, color=(*color, 255))
-                canvas.paste(img, box=(left, top))
+                if len(color) != 3:
+                    color = get_dominant_color(img)
+                canvas.paste(resize_img(img, size=cell_size), box=(left, top))
                 canvas.paste(cell, box=(left+cell_size, top))
         canvas.show(title='corpus')
 
