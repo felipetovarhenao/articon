@@ -1,7 +1,7 @@
 from __future__ import annotations
 from .image import Image
 from random import randint, choice, random, Random
-from .config import RESAMPLING_METHOD, COUNTER, BAR
+from .config import COUNTER, BAR
 from .utils import resize_img, get_dominant_color, xy_random, bgr2rgb, write_frame
 import numpy as np
 from typing import Callable
