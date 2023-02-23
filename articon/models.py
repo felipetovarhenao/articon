@@ -39,7 +39,7 @@ class IconCorpus:
     def read(cls,
              source: str,
              selection_filter: Callable | None = None,
-             size: Iterable | None = 60,
+             size: Iterable | int | float | None = 60,
              error_tolerance: float = 0.25,
              alpha_threshold: int = 127,
              feature_extraction_func: Callable | None = None,
