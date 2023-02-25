@@ -31,7 +31,7 @@ def resize_img(img: Image.Image, size: Iterable | float | int) -> Image.Image:
     if isinstance(size, Iterable):
         # 1) explicit
         out_size = size
-    elif isinstance(size, float | int):
+    elif isinstance(size, (float, int)):
         if size < 10:
             # 2) scaling factor
             factor = size

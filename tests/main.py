@@ -32,7 +32,7 @@ class ImpTest(unittest.TestCase):
         def func(img):
             return ImageStat.Stat(img).mean[:3]
         c = IconCorpus.read(source=self.sources, feature_extraction_func=func)
-        IconMosaic(target=self.target_2, corpus=c, scale_target=0.7)
+        IconMosaic(target=self.target_2, corpus=c, size=0.7)
 
     def tearDown(self) -> None:
         os.rmdir(self.test_dir)

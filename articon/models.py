@@ -76,7 +76,7 @@ class IconCorpus:
     @staticmethod
     def __handle_random_loading(files: Iterable, seed: int | None) -> None:
         """ Checks if random loading seed is valid and warns user """
-        if not isinstance(seed, int | None):
+        if seed is not None and not isinstance(seed, int):
             raise TypeError(f"{seed} must be an integer or NoneType. Ignoring value...")
         elif seed is not None:
             Random(seed).shuffle(files)
@@ -278,9 +278,10 @@ class AnimatedIconMosaic:
         points = np.array(sampler.get_points()).astype('int64')
 
         read_count = 0
+        write_count = 0
         success = True
         try:
-            while success and read_count < max_read_frames:
+            while success and write_count < max_write_frames:
                 success, frame = self.reader.read()
                 if read_count % hop_size == 0:
                     self.__write_frame(writer=writer,
@@ -289,6 +290,7 @@ class AnimatedIconMosaic:
                                        size=size,
                                        sample_func=sample_func)
                     BAR.next()
+                    write_count += 1
                 read_count += 1
         except KeyboardInterrupt:
             pass
@@ -331,4 +333,4 @@ class AnimatedIconMosaic:
         # write it into video
         write_frame(writer, output_frame)
 
-        self.theta += 1
+        self.theta += 0.5
