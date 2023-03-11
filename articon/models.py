@@ -262,12 +262,11 @@ class AnimatedIconMosaic:
         max_frames = self.reader.get(cv2.CAP_PROP_FRAME_COUNT)
 
         # get output duration in seconds
-        total_duration = min(max_duration, max_frames // reader_frame_rate)
+        total_duration = min(max_duration, max_frames / reader_frame_rate)
 
-        # compute hop size based on frame rate ratio between input and output
+        # get max read/write number of frames
         max_read_frames = int(total_duration * reader_frame_rate)
         max_write_frames = min(int(total_duration * frame_rate), max_read_frames)
-        hop_size = max(1, int(max_read_frames // max_write_frames))
 
         # warn if target frame rate is lower than desired
         if frame_rate > reader_frame_rate:
@@ -295,21 +294,36 @@ class AnimatedIconMosaic:
         sample_func = self.__get_sample_func(xy_offset=xy_offset)
         points = np.array(sampler.get_points()).astype('int64')
 
-        read_count = 0
-        write_count = 0
+        read_count = -1
+        write_count = -1
         success = True
         try:
-            while success and write_count < max_write_frames:
-                success, frame = self.reader.read()
-                if read_count % hop_size == 0:
+            while True:
+                # decode frame
+                success = self.reader.grab()
+                if not success:
+                    break
+
+                # increase current input frame and check if we need to make mosaic
+                read_count += 1
+
+                # get output frame index
+                output_index = int(read_count / max_read_frames * max_write_frames)
+
+                # make mosaic if mosaic doesn't exist for output index
+                if output_index > write_count:
+                    success, frame = self.reader.retrieve()
+                    if not success:
+                        break
+                    write_count += 1
+
                     self.__write_frame(writer=writer,
                                        reader_frame=frame,
                                        points=points,
                                        size=size,
                                        sample_func=sample_func)
                     BAR.next()
-                    write_count += 1
-                read_count += 1
+
         except KeyboardInterrupt:
             pass
         BAR.finish()
@@ -326,7 +340,7 @@ class AnimatedIconMosaic:
             left, top, right, bottom = np.array([x-xy_offset, y-xy_offset, x+xy_offset, y+xy_offset]).astype('int64')
 
             # get deterministically pseudo-random value from x, y coordinates
-            theta = int(xy_random(x, y) * 360)
+            theta_offset = int(xy_random(x, y) * 360)
 
             # extract target segment
             segment = input_frame.crop(box=((left, top, right, bottom)))
@@ -339,8 +353,8 @@ class AnimatedIconMosaic:
             best_match = self.corpus.images[image_index]
 
             # apply transformation to match
-            direction = [-1, 1][int(theta) % 2 == 0]
-            best_match = best_match.rotate(theta + (self.theta*direction), resample=Image.Resampling.BICUBIC, expand=1)
+            direction = [-1, 1][int(theta_offset) % 2 == 0]
+            best_match = best_match.rotate(theta_offset + (self.theta*direction), resample=Image.Resampling.BICUBIC, expand=1)
 
             # paste transformed match in current frame
             box = tuple((point - np.array(best_match.size) // 2).astype('int64'))
