@@ -256,17 +256,23 @@ class AnimatedIconMosaic:
                frame_rate: int = 24,
                radius: int = 10) -> None:
         """ Writes a video mosaic animation to disk """
-        # define frame params
+
+        # get input target's frame info
         reader_frame_rate = self.reader.get(cv2.CAP_PROP_FPS)
-        max_dur = max_duration or self.reader.get(cv2.CAP_PROP_FRAME_COUNT) * reader_frame_rate
-        max_read_frames = int(max_dur * reader_frame_rate)
-        max_write_frames = min(int(max_dur * frame_rate), max_read_frames)
-        hop_size = int(max_read_frames//max_write_frames)
+        max_frames = self.reader.get(cv2.CAP_PROP_FRAME_COUNT)
+
+        # get output duration in seconds
+        total_duration = min(max_duration, max_frames // reader_frame_rate)
+
+        # compute hop size based on frame rate ratio between input and output
+        max_read_frames = int(total_duration * reader_frame_rate)
+        max_write_frames = min(int(total_duration * frame_rate), max_read_frames)
+        hop_size = max(1, int(max_read_frames // max_write_frames))
 
         # warn if target frame rate is lower than desired
         if frame_rate > reader_frame_rate:
             print(
-                f'Warning: The target\'s frame rate ({frame_rate} fps) is lower that desired frame rate ({reader_frame_rate} fps), and will therefore be ignored. Rendering at {reader_frame_rate} fps...')
+                f'Warning: The target\'s original frame rate ({frame_rate} fps) is lower than the requested frame rate ({reader_frame_rate} fps), and will therefore be ignored. Rendering at {reader_frame_rate} fps...')
 
         # get first frame
         image = self.reader.read()[1]
