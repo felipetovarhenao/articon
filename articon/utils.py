@@ -17,6 +17,10 @@ def rgb2hex(r: int, g: int, b: int) -> str:
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 
+def hex2rgb(hex: str) -> tuple:
+    return tuple(int(hex[int(hex[0] == '#'):][i:i+2], 16) for i in (0, 2, 4))
+
+
 def resize_img(img: Image.Image, size: Iterable | float | int) -> Image.Image:
     """
     Resizes image while preserving aspect ratio.
@@ -69,7 +73,7 @@ def resize_img(img: Image.Image, size: Iterable | float | int) -> Image.Image:
     return ImageChops.offset(thumb, xoffset=offset_x, yoffset=offset_y)
 
 
-def pixelate_image(img: Image.Image, pixel_size: int, error_tolerance: float = 0.25, alpha_threshold: int = 127) -> Image.Image:
+def pixelate_image(img: Image.Image, pixel_size: int, alpha_threshold: int = 127) -> Image.Image:
     cols, rows = (np.array(img.size) // pixel_size).astype('int64')
     canvas = Image.new(mode='RGBA', size=img.size, color=(0, 0, 0, 0))
     for i in range(rows):
@@ -77,7 +81,7 @@ def pixelate_image(img: Image.Image, pixel_size: int, error_tolerance: float = 0
             left, top = pixel_size*i, pixel_size*j
             box = (left, top, left + pixel_size, top + pixel_size)
             seg = img.crop(box)
-            rgba = get_dominant_color(seg, error_tolerance, alpha_threshold)[0]
+            rgba = get_dominant_color(seg, alpha_threshold)[0]
             col = Image.new(mode='RGBA', size=(pixel_size, pixel_size), color=tuple((*rgba, 255)))
             canvas.paste(col, box=(left, top))
     return canvas

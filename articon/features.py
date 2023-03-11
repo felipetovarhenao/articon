@@ -1,53 +1,61 @@
+from numba import njit
 from .image import Image, ImageStat
 from .config import MAX_RGB_DISTANCE, RGB_WEIGHTS
 from collections.abc import Iterable
 import numpy as np
 
 
-def get_dominant_color(img: Image.Image, error_tolerance: float = 0.25, alpha_threshold: int = 127, n_colors: int = 16) -> Iterable:
-    """ Finds the most prevalent color in an image """
+def get_dominant_color(img: Image.Image, max_distance: int = 30, alpha_threshold: int = 127) -> Iterable:
+    """
+    Finds the most dominant color in an image, and the pixel density (0-1) for that color
 
-    # quantize image into n_colors
-    im = img.quantize(n_colors, method=Image.Quantize.FASTOCTREE)
+    img: Image
+        A PIL image.
+    max_distance: int | float = 30
+        Maximum distance a color can be from the mean, in order to count toward pixel count.
+    alpha_threshold: int = 127
+        The minumum alpha value for a pixel to be considered as active.
+    """
 
-    # get num of active pixels
-    arr = np.array(img)[:, :, 3].reshape(img.size[0]*img.size[1])
-    num_pixels = np.where(arr > alpha_threshold, 1, 0).sum()
-    try:
-        mean = ImageStat.Stat(im.convert('RGB'), im.convert('L')).mean
-    except:
-        mean = (0, 0, 0)
-    im = im.convert('PA')
+    # converts to rgba if needed
+    image = img if img.mode == 'RGBA' else img.convert("RGBA")
 
-    # sort colors based on pixel count
-    dominant_sorted = sorted(im.getcolors(), key=lambda x: (-x[0], x[1][1]))
+    # convert image to numpy array and flatten
+    flat_image = np.array(image).reshape(image.size[0]*image.size[1], 4)
 
-    # reshape palette into RGB subarrays and initialize best candidate
+    # split rgb from alpha
+    rgb_array, alpha_array = flat_image[:, :3], flat_image[:, 3]
+
+    # create mask from active pixels and use it as weights to compute average color
+    pixel_mask = np.where(alpha_array > alpha_threshold, 1, 0)
+    num_pixels = pixel_mask.sum()
+    mean = np.average(a=rgb_array, axis=0, weights=pixel_mask if num_pixels > 1 else None)
+
+    # convert to alpha palette
+    im = img.convert('PA')
+
+    # reshape palette into RGB subarrays
     palette = np.array(im.getpalette())
     palette = palette.reshape((len(palette)//3, 3))
-    best_candidate = palette[dominant_sorted[0][1][0]]
 
-    # set error threshold
-    error_threshold = 255 * (1 - error_tolerance)
-    min_error = 1000
-    found = False
-    col = None
-    density = 0
+    # initialize dominant color pixel count
+    pixel_count = 0
 
-    # look for color that passes error and alpha thresholds
-    for i in range(len(dominant_sorted)):
-        pixel_count, (pixel, alpha) = dominant_sorted[i]
+    # iterate through every unique color in image and get pixel count if it passes conditions
+    for count, (index, alpha) in im.getcolors():
+
+        # reject if too transparent
         if alpha < alpha_threshold:
             continue
-        col = palette[pixel]
-        error = ((RGB_WEIGHTS*((col[:3] - mean[:3]) ** 2)).sum() ** 0.5) / MAX_RGB_DISTANCE
-        if error < min_error:
-            best_candidate = col
-            min_error = error
-            density = pixel_count/num_pixels
-        if error > error_threshold:
-            continue
-        found = True
-        break
+        rgb = palette[index][:3]
+        dist = ((RGB_WEIGHTS*((rgb - mean) ** 2)).sum() ** 0.5)
 
-    return col if found else best_candidate, density
+        # reject if too different from mean
+        if dist > max_distance:
+            continue
+
+        # include in pixel count
+        pixel_count += count
+
+    # return mean color and pixel density
+    return mean.astype('int64'), pixel_count / num_pixels

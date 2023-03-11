@@ -2,6 +2,7 @@ from __future__ import annotations
 from .image import Image
 from random import randint, choice, random, Random
 from .config import COUNTER, BAR
+from .filters import make_density_filter
 from .utils import resize_img, get_dominant_color, xy_random, bgr2rgb, write_frame
 import numpy as np
 from typing import Callable
@@ -24,23 +25,20 @@ class IconCorpus:
                  images: Iterable,
                  leaf_size: int = 10,
                  feature_extraction_func: Callable | None = None,
-                 error_tolerance: float = 0.25,
                  alpha_threshold: int = 127,
                  precomputed_features: Iterable | None = None) -> None:
         if precomputed_features and not feature_extraction_func:
             raise ValueError("When providing precomputed features, you must also provide a feature extraction function.")
         self.images = images
-        self.feature_extraction_func = feature_extraction_func or IconCorpus.__get_feature_extraction_func(
-            error_tolerance, alpha_threshold)
+        self.feature_extraction_func = feature_extraction_func or IconCorpus.get_feature_extraction_func(alpha_threshold)
         features = precomputed_features or [self.feature_extraction_func(img) for img in self.images]
         self.tree = KDTree(features, leaf_size=leaf_size)
 
     @classmethod
     def read(cls,
              source: str,
-             selection_filter: Callable | None = None,
+             selection_filter: Callable | None = make_density_filter(),
              size: Iterable | int | float | None = 60,
-             error_tolerance: float = 0.25,
              alpha_threshold: int = 127,
              feature_extraction_func: Callable | None = None,
              random_loading_seed: int | None = None,
@@ -49,7 +47,7 @@ class IconCorpus:
         """ Builds a corpus from a folder of images, recursively loading any .jpeg, .jpg, or .png file within. """
         images = []
         features = []
-        feature_func = feature_extraction_func or IconCorpus.__get_feature_extraction_func(error_tolerance, alpha_threshold)
+        feature_func = feature_extraction_func or IconCorpus.get_feature_extraction_func(alpha_threshold)
         COUNTER.reset('Building corpus from images:')
         for root, _, files in os.walk(source):
             cls.__handle_random_loading(files, random_loading_seed)
@@ -106,9 +104,9 @@ class IconCorpus:
         canvas.show(title='corpus')
 
     @classmethod
-    def __get_feature_extraction_func(cls, error_tolerance: float | int, alpha_treshold: int) -> Callable:
+    def get_feature_extraction_func(cls, alpha_treshold: int) -> Callable:
         def feature_extraction_func(img: Image.Image) -> Iterable:
-            color, density = get_dominant_color(img, error_tolerance, alpha_treshold)
+            color, density = get_dominant_color(img, alpha_treshold)
             return (*color, density)
         return feature_extraction_func
 
