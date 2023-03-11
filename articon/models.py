@@ -128,12 +128,17 @@ class IconMosaic:
             keep_frames: bool = False,
             frame_hop_size: int | None = None) -> None:
 
+        # load target as image vs from path string
         self.target = Image.open(target).convert('RGBA') if isinstance(target, str) else target
+
+        # resize if needed
         if size:
             self.target = resize_img(self.target, size=size)
 
         self.corpus = corpus
         self.frames = []
+
+        # initialize empty canvas
         self.mosaic = Image.new(mode='RGBA', size=self.target.size, color=(0, 0, 0, 0))
 
         # get grid cell size
@@ -144,9 +149,11 @@ class IconMosaic:
         self.frame_counter_modulo = frame_hop_size or int(max(1, cell_size))
 
         # build mosaic using poisson disk sampler
-        self.sampler = PoissonDiskSampler(
-            width=self.target.width, height=self.target.height, radius=radius, k=k,
-            sample_func=self.__get_sample_func(cell_size, num_choices, target_mix, keep_frames))
+        self.sampler = PoissonDiskSampler(width=self.target.width,
+                                          height=self.target.height,
+                                          radius=radius,
+                                          k=k,
+                                          sample_func=self.__get_sample_func(cell_size, num_choices, target_mix, keep_frames))
 
         # paste mosaic on top of target mix if used
         if target_mix > 0.0:
@@ -228,7 +235,14 @@ class IconMosaic:
 
 
 class AnimatedIconMosaic:
-    """ This class create an animated mosaic based on a target video. """
+    """
+    An animated mosaic represents a reconstruction of a target video using an image corpus.
+
+    target: str
+        Path of target video
+    corpus: IconCorpus
+        An instance of the `ImageCorpus` class.
+    """
 
     def __init__(self, target: str, corpus: IconCorpus) -> None:
         self.reader = cv2.VideoCapture(target)
@@ -299,15 +313,30 @@ class AnimatedIconMosaic:
         """ Creates function to run for every point in the Poisson sampler """
 
         def sample_func(input_frame: Image.Image, output_frame: Image.Image, point: Iterable) -> None:
+            # get x, y coordinates
             x, y = point
+
+            # get squared segment bounds from target
             left, top, right, bottom = np.array([x-xy_offset, y-xy_offset, x+xy_offset, y+xy_offset]).astype('int64')
+
+            # get deterministically pseudo-random value from x, y coordinates
             theta = int(xy_random(x, y) * 360)
+
+            # extract target segment
             segment = input_frame.crop(box=((left, top, right, bottom)))
+
+            # extract feature from segment
             feature = self.corpus.feature_extraction_func(segment)
+
+            # get best match for feature
             image_index = self.corpus.tree.query([feature], k=1)[1][0][0]
             best_match = self.corpus.images[image_index]
+
+            # apply transformation to match
             direction = [-1, 1][int(theta) % 2 == 0]
             best_match = best_match.rotate(theta + (self.theta*direction), resample=Image.Resampling.BICUBIC, expand=1)
+
+            # paste transformed match in current frame
             box = tuple((point - np.array(best_match.size) // 2).astype('int64'))
             output_frame.paste(best_match, box=box, mask=best_match)
 
@@ -331,4 +360,4 @@ class AnimatedIconMosaic:
         # write it into video
         write_frame(writer, output_frame)
 
-        self.theta += 0.5
+        self.theta += 1
