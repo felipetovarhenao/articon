@@ -23,7 +23,7 @@ class ImpTest(unittest.TestCase):
         # create test corpora
         self.color_corpus = IconCorpus(images=create_image_palette())
         self.arc_corpus = IconCorpus(images=create_image_palette(func=self.ring_from_color))
-        self.emoji_corpus = IconCorpus.read(source=self.sources, size=(60, 60))
+        self.emoji_corpus = IconCorpus.read(source=self.sources, size=60)
 
     def test_basic_mosaic(self):
         IconMosaic(target=self.target_1, corpus=self.emoji_corpus, radius=15)

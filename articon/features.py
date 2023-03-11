@@ -1,6 +1,5 @@
-from numba import njit
-from .image import Image, ImageStat
-from .config import MAX_RGB_DISTANCE, RGB_WEIGHTS
+from .image import Image
+from .config import RGB_WEIGHTS
 from collections.abc import Iterable
 import numpy as np
 
