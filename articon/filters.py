@@ -12,9 +12,6 @@ def make_density_filter(min_density: float = 0.35, **kwargs) -> Callable:
     """
 
     def filter(img: Image.Image) -> bool:
-        _, density = get_dominant_color(img, **kwargs)
-        if density < min_density:
-            return False
-        return True
+        return get_dominant_color(img, **kwargs)[1] > min_density
 
     return filter

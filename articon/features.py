@@ -28,7 +28,11 @@ def get_dominant_color(img: Image.Image, max_distance: int = 30, alpha_threshold
     # create mask from active pixels and use it as weights to compute average color
     pixel_mask = np.where(alpha_array > alpha_threshold, 1, 0)
     num_pixels = pixel_mask.sum()
-    mean = np.average(a=rgb_array, axis=0, weights=pixel_mask if num_pixels > 1 else None)
+
+    # return with 0 density if no pixe
+    if not num_pixels:
+        return np.array([0, 0, 0]), 0.0
+    mean = np.average(a=rgb_array, axis=0, weights=pixel_mask)
 
     # convert to alpha palette
     im = img.convert('PA')

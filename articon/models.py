@@ -299,6 +299,11 @@ class AnimatedIconMosaic:
         success = True
         try:
             while True:
+
+                # exit loop if max duration in frames is exceeded
+                if write_count > max_write_frames:
+                    break
+
                 # decode frame
                 success = self.reader.grab()
                 if not success:
