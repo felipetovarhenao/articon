@@ -13,10 +13,10 @@ Here are some emoji-art examples made with **articon**.
 
 
 <div align="center">
-	<img src="examples/starry-night-example.gif" alt="starry night" height="400px" width="auto" />
-	<img src="examples/bob-ross-example.gif" alt="Bob Ross" height="400px" width="auto" />
-	<img src="examples/trump-example.gif" alt="Trump" height="400px" width="auto" />
-	<img src="examples/mona-lisa-example.gif" alt="Mona Lisa" height="400px" width="auto" />
+    <img src="examples/starry-night-example.gif" alt="starry night" height="400px" width="auto" />
+    <img src="examples/bob-ross-example.gif" alt="Bob Ross" height="400px" width="auto" />
+    <img src="examples/trump-example.gif" alt="Trump" height="400px" width="auto" />
+    <img src="examples/mona-lisa-example.gif" alt="Mona Lisa" height="400px" width="auto" />
 </div>
 
 To see a demo of video mosaics, click [here](https://youtu.be/K_I0N-L-HzU)
@@ -37,8 +37,8 @@ corpus.show()
 
 # create mosaic, pre-resizing target to fit within 900x900 pixels
 mosaic = IconMosaic(target=target, 
-					corpus=corpus,
-					size=900)
+                    corpus=corpus,
+                    size=900)
 # show mosaic
 mosaic.show()
 
