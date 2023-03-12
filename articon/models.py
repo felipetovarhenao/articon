@@ -126,7 +126,8 @@ class IconMosaic:
             num_choices: int = 1,
             target_mix: float = 0.0,
             keep_frames: bool = False,
-            frame_hop_size: int | None = None) -> None:
+            frame_hop_size: int | None = None,
+            rand_resize: float = 0.0) -> None:
 
         # load target as image vs from path string
         self.target = Image.open(target).convert('RGBA') if isinstance(target, str) else target
@@ -149,11 +150,9 @@ class IconMosaic:
         self.frame_counter_modulo = frame_hop_size or int(max(1, cell_size))
 
         # build mosaic using poisson disk sampler
-        self.sampler = PoissonDiskSampler(width=self.target.width,
-                                          height=self.target.height,
-                                          radius=radius,
-                                          k=k,
-                                          sample_func=self.__get_sample_func(cell_size, num_choices, target_mix, keep_frames))
+        self.sampler = PoissonDiskSampler(
+            width=self.target.width, height=self.target.height, radius=radius, k=k, sample_func=self.__get_sample_func(
+                cell_size, num_choices, target_mix, keep_frames, rand_resize))
 
         # paste mosaic on top of target mix if used
         if target_mix > 0.0:
@@ -161,7 +160,7 @@ class IconMosaic:
             tmp.paste(self.mosaic, mask=self.mosaic.convert('LA'))
             self.mosaic = tmp
 
-    def __get_sample_func(self, xy_offset: int, num_choices: int, target_mix: float, keep_frames: bool):
+    def __get_sample_func(self, xy_offset: int, num_choices: int, target_mix: float, keep_frames: bool, rand_resize: float = 0.0):
         def sample_func(point: Iterable) -> None:
             x, y = point
             left, top, right, bottom = np.array([x-xy_offset, y-xy_offset, x+xy_offset, y+xy_offset]).astype('int64')
@@ -172,6 +171,8 @@ class IconMosaic:
             indexes = self.corpus.tree.query([feature], k=num_choices)[1][0]
             matches = [self.corpus.images[i] for i in indexes]
             best_match = choice(matches)
+            if rand_resize > 0:
+                best_match = resize_img(best_match, xy_random(x, y) * rand_resize + 1.0)
             best_match = best_match.rotate(randint(0, 360), resample=Image.Resampling.BICUBIC, expand=1)
             box = tuple((point - np.array(best_match.size) // 2).astype('int64'))
             self.mosaic.paste(best_match, box=box, mask=best_match)

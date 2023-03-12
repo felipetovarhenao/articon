@@ -8,7 +8,8 @@
 ![license](https://img.shields.io/pypi/l/articon)
 
 ## Description
-Python module for flexible, corpus-based icon mosaicking. Here are some emoji-art examples made with **articon**.
+**articon** is a Python package for flexible, corpus-based icon mosaicking. Given a target image or video, **articon** tries to find the best matches from the corpus and assembled them into a mosaic.
+Here are some emoji-art examples made with **articon**.
 
 
 <div align="center">
@@ -17,6 +18,34 @@ Python module for flexible, corpus-based icon mosaicking. Here are some emoji-ar
 	<img src="examples/trump-example.gif" alt="Trump" height="400px" width="auto" />
 	<img src="examples/mona-lisa-example.gif" alt="Mona Lisa" height="400px" width="auto" />
 </div>
+
+To see a demo of video mosaics, click [here](https://youtu.be/K_I0N-L-HzU)
+
+## Basic example
+
+```python
+from articon.models import IconCorpus, IconMosaic
+
+source = 'path/to/icon/images/folder/'
+target = 'path/to/target/image/'
+
+# create corpus, resizing all images to fit within 40x40 pixels
+corpus = IconCorpus.read(source=source, size=40)
+
+# visualize corpus
+corpus.show()
+
+# create mosaic, pre-resizing target to fit within 900x900 pixels
+mosaic = IconMosaic(target=target, 
+					corpus=corpus,
+					size=900)
+# show mosaic
+mosaic.show()
+
+# write mosaic to disk
+mosaic.save('mymosaic.png')
+
+```
 
 
 ## Acknowledgements
