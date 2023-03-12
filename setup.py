@@ -4,7 +4,7 @@ from pathlib import Path
 long_description = (Path(__file__).parent / "README.md").read_text()
 
 MODULE = 'articon'
-VERSION = '0.0.0-dev'
+VERSION = '0.0.1'
 DESCRIPTION = 'Corpus-based, icon mosaicking art in Python'
 
 setup(
